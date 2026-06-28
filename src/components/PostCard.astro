@@ -1,0 +1,23 @@
+---
+import { categoryName } from '../categories';
+
+interface Props {
+  id: string;
+  title: string;
+  description?: string;
+  category: string;
+  cover?: string;
+}
+
+const { id, title, description, category, cover } = Astro.props;
+const fallback = `https://picsum.photos/seed/${encodeURIComponent(id)}/600/450`;
+---
+
+<a class="card" href={`/posts/${id}/`}>
+  <div class="thumb">
+    <img src={cover ?? fallback} alt={title} loading="lazy" />
+  </div>
+  <div class="meta">{categoryName(category)}</div>
+  <h3>{title}</h3>
+  {description && <p>{description}</p>}
+</a>

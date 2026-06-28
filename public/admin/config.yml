@@ -1,0 +1,38 @@
+# ────────────────────────────────────────────────────────────
+#  Editing panel config (Decap / Sveltia CMS)
+#  This is what powers your private /admin login page.
+#  The `backend` block gets finalized when we deploy (it needs
+#  your GitHub repo name). Everything else is ready to go.
+# ────────────────────────────────────────────────────────────
+
+backend:
+  name: git-gateway
+  branch: main
+
+# Where dragged-in photos are saved, and how they're linked on the site.
+media_folder: "public/images"
+public_folder: "/images"
+
+collections:
+  - name: "posts"
+    label: "Posts"
+    label_singular: "Post"
+    folder: "src/content/posts"
+    create: true
+    slug: "{{slug}}"
+    summary: "{{title}}  ·  {{category}}"
+    sortable_fields: ["date", "title"]
+    fields:
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Short description", name: "description", widget: "text", required: false, hint: "One line shown under the title." }
+      - { label: "Date", name: "date", widget: "datetime" }
+      - label: "Category"
+        name: "category"
+        widget: "select"
+        default: "travel"
+        options:
+          - { label: "Travel", value: "travel" }
+          - { label: "Short Stories", value: "stories" }
+      - { label: "Cover image", name: "cover", widget: "image", required: false, hint: "The big photo at the top. Leave empty for a placeholder." }
+      - { label: "Hide (draft)", name: "draft", widget: "boolean", default: false }
+      - { label: "Body", name: "body", widget: "markdown" }
