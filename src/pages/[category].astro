@@ -1,7 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
-import PostCard from '../components/PostCard.astro';
 import { categories, categoryName } from '../categories';
 
 export async function getStaticPaths() {
@@ -12,35 +11,67 @@ const { category } = Astro.params;
 const name = categoryName(category);
 
 const posts = (
-  await getCollection(
-    'posts',
-    ({ data }) => !data.draft && data.category === category
-  )
+  await getCollection('posts', ({ data }) => !data.draft && data.category === category)
 ).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const lead =
+  category === 'travel'
+    ? 'Places that made me stop walking. Shot on rainy nights and the quiet hours around them.'
+    : 'Short fiction — some true, most invented. Read slowly.';
+
+function dateLabel(d: Date) {
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+}
+function img(id: string, cover?: string) {
+  return cover ?? `https://picsum.photos/seed/${encodeURIComponent(id)}/800/800`;
+}
 ---
 
-<BaseLayout active={category} title={name}>
-  <section class="wrap-wide intro">
-    <h1>{name}</h1>
-  </section>
+<BaseLayout active={category} title={name} description={lead}>
+  <section class="wrap-wide page-top">
+    <div class="split">
+      <div class="aside">
+        <p class="kicker slate">{category === 'travel' ? 'Gallery' : 'Reading'}</p>
+        <h1>{name}</h1>
+        <p class="lead">{lead}</p>
+        <p class="count slate">{name} / {posts.length} {category === 'travel' ? 'frames' : 'stories'}</p>
+      </div>
 
-  <section class="wrap-wide">
-    {
-      posts.length === 0 ? (
-        <p class="empty">Nothing here yet.</p>
-      ) : (
-        <div class="grid">
-          {posts.map((post) => (
-            <PostCard
-              id={post.id}
-              title={post.data.title}
-              description={post.data.description}
-              category={post.data.category}
-              cover={post.data.cover}
-            />
-          ))}
-        </div>
-      )
-    }
+      <div class="content">
+        {
+          posts.length === 0 ? (
+            <p class="empty">Nothing here yet.</p>
+          ) : category === 'travel' ? (
+            <div class="masonry">
+              {posts.map((post) => (
+                <a class="tile reveal" href={`/posts/${post.id}/`}>
+                  <figure class="frame" transition:name={`photo-${post.id}`}>
+                    <img src={img(post.id, post.data.cover)} alt={post.data.title} loading="lazy" decoding="async" />
+                  </figure>
+                  <div class="cap slate">{post.data.title} · {dateLabel(post.data.date)}</div>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div class="toc">
+              {posts.map((post) => (
+                <a class="toc-row reveal" href={`/posts/${post.id}/`}>
+                  <div class="mat">
+                    <figure class="frame" transition:name={`photo-${post.id}`}>
+                      <img src={img(post.id, post.data.cover)} alt={post.data.title} loading="lazy" decoding="async" />
+                    </figure>
+                  </div>
+                  <div>
+                    <div class="meta slate">{dateLabel(post.data.date)}</div>
+                    <h3>{post.data.title}</h3>
+                    {post.data.description && <p class="dek">{post.data.description}</p>}
+                  </div>
+                </a>
+              ))}
+            </div>
+          )
+        }
+      </div>
+    </div>
   </section>
 </BaseLayout>

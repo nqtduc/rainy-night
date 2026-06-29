@@ -2,36 +2,90 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import PostCard from '../components/PostCard.astro';
+import { categoryName } from '../categories';
 
 const posts = (await getCollection('posts', ({ data }) => !data.draft)).sort(
   (a, b) => b.data.date.valueOf() - a.data.date.valueOf()
 );
+
+// Fixed brand hero — a rainy night in the city. Swap this file in /admin later.
+const HERO_IMG = '/images/hero.jpg';
+const feed = posts;
+const frames = posts.filter((p) => p.data.category === 'travel').slice(0, 8);
+
+function span(i: number) {
+  if (i === 0) return 'span-7';
+  if (i === 1) return 'span-5';
+  return 'span-4';
+}
 ---
 
 <BaseLayout active="home">
-  <section class="wrap-wide intro">
-    <h1>Rainy Night</h1>
-    <p>
-      A quiet corner of the internet for the places I wander through and the
-      short stories I dream up. Mostly scenery. Mostly feeling.
-    </p>
+  <section class="hero">
+    <div class="hero-media">
+      <img src={HERO_IMG} alt="A rainy night in the city" fetchpriority="high" />
+    </div>
+    <div class="rain" aria-hidden="true"></div>
+    <div class="lamp" aria-hidden="true"></div>
+    <div class="wrap-wide hero-inner">
+      <p class="kicker slate">Field notes &amp; fiction <span class="dot">·</span> Hanoi, 21°N</p>
+      <h1 class="hero-mark">Rainy Night</h1>
+      <p class="dek">A quiet room of scenery and short stories. Mostly photographs. Mostly feeling.</p>
+      <p class="scroll-hint slate">Scroll ↓</p>
+    </div>
   </section>
 
-  <section class="wrap-wide">
+  <section class="feed wrap-wide">
+    <div class="feed-head">
+      <h2>Latest</h2>
+      <a class="slate" href="/travel/">All frames →</a>
+    </div>
+
     {
-      posts.length === 0 ? (
-        <p class="empty">No posts yet — your first story will appear here.</p>
+      feed.length === 0 ? (
+        <p class="empty">More is on the way. The first frames develop soon.</p>
       ) : (
-        <div class="grid">
-          {posts.map((post) => (
-            <PostCard
-              id={post.id}
-              title={post.data.title}
-              description={post.data.description}
-              category={post.data.category}
-              cover={post.data.cover}
-            />
+        <div class="grid12">
+          {feed.map((post, i) => (
+            <div class={span(i)}>
+              <PostCard
+                id={post.id}
+                title={post.data.title}
+                description={post.data.description}
+                category={post.data.category}
+                cover={post.data.cover}
+                date={post.data.date}
+                variant={post.data.category === 'stories' ? 'text' : 'photo'}
+                tall={i === 0}
+              />
+            </div>
           ))}
+        </div>
+      )
+    }
+
+    {
+      frames.length > 1 && (
+        <div class="strip-wrap reveal">
+          <div class="feed-head">
+            <h2>Recent frames</h2>
+            <span class="slate">Swipe →</span>
+          </div>
+          <div class="strip">
+            {frames.map((post) => (
+              <a href={`/posts/${post.id}/`}>
+                <figure class="frame">
+                  <img
+                    src={post.data.cover ?? `https://picsum.photos/seed/${encodeURIComponent(post.id)}/600/400`}
+                    alt={post.data.title}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </figure>
+                <div class="cap slate">{categoryName(post.data.category)}</div>
+              </a>
+            ))}
+          </div>
         </div>
       )
     }

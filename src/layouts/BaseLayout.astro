@@ -1,5 +1,7 @@
 ---
 import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import { getCollection } from 'astro:content';
 import { categories } from '../categories';
 
 interface Props {
@@ -12,8 +14,16 @@ const SITE_NAME = 'Rainy Night';
 const SITE_TAGLINE = 'Scenery, journeys, and stories told on rainy nights.';
 
 const { title, description, active } = Astro.props;
-const pageTitle = title ? `${title} — ${SITE_NAME}` : SITE_NAME;
+const pageTitle = title ? `${title} — ${SITE_NAME}` : `${SITE_NAME} — field notes & fiction`;
 const pageDesc = description ?? SITE_TAGLINE;
+
+// "LAST DEVELOPED" — newest post date, for the footer colophon.
+const allPosts = await getCollection('posts', ({ data }) => !data.draft);
+const latest = allPosts.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf())[0];
+const lastDeveloped = latest
+  ? latest.data.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
+  : '—';
+const year = new Date().getFullYear();
 ---
 
 <!doctype html>
@@ -21,25 +31,33 @@ const pageDesc = description ?? SITE_TAGLINE;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0a0c10" />
     <title>{pageTitle}</title>
     <meta name="description" content={pageDesc} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={pageDesc} />
     <meta property="og:type" content="website" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Newsreader:ital,opsz,wght@0,6..72,400..600;1,6..72,400..500&family=IBM+Plex+Mono:wght@400&display=swap"
       rel="stylesheet"
     />
+
+    <ClientRouter />
   </head>
   <body>
-    <header class="site-header">
+    <div id="top-sentinel" aria-hidden="true" style="position:absolute;top:0;height:80px;width:1px;"></div>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="progress" aria-hidden="true"></div>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="site-header" transition:persist>
       <div class="wrap-wide bar">
         <a class="brand" href="/">{SITE_NAME}</a>
         <nav class="nav">
-          <a href="/" class={active === 'home' ? 'active' : ''}>Home</a>
           {
             categories.map((c) => (
               <a href={`/${c.slug}/`} class={active === c.slug ? 'active' : ''}>
@@ -49,18 +67,86 @@ const pageDesc = description ?? SITE_TAGLINE;
           }
           <a href="/about/" class={active === 'about' ? 'active' : ''}>About</a>
         </nav>
+        <span class="clock" data-clock aria-hidden="true">HANOI</span>
       </div>
     </header>
 
-    <main>
+    <main id="main">
       <slot />
     </main>
 
     <footer class="site-footer">
-      <div class="wrap-wide bar">
-        <span>© {new Date().getFullYear()} {SITE_NAME}</span>
-        <span>Made quietly, one photo at a time.</span>
+      <span class="ghost-mark" aria-hidden="true">Rainy Night</span>
+      <div class="wrap-wide footer-inner">
+        <p class="signoff">Good night.</p>
+        <div class="colophon slate">
+          <span>© {year}</span>
+          <span>Made in Hanoi</span>
+          <span>21.0278° N · 105.8342° E</span>
+          <span>Last developed {lastDeveloped}</span>
+          <a class="totop" href="#top">Back to top ↑</a>
+        </div>
       </div>
     </footer>
+
+    <span id="top"></span>
+
+    <script>
+      function setupClock() {
+        const el = document.querySelector('[data-clock]');
+        if (!el) return;
+        const tick = () => {
+          try {
+            el.textContent =
+              'HANOI ' +
+              new Date().toLocaleTimeString('en-GB', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'Asia/Ho_Chi_Minh',
+              });
+          } catch (e) {}
+        };
+        tick();
+        // @ts-ignore
+        if (el._t) clearInterval(el._t);
+        // @ts-ignore
+        el._t = setInterval(tick, 30000);
+      }
+
+      function setupNav() {
+        const sentinel = document.querySelector('#top-sentinel');
+        if (!sentinel) return;
+        const io = new IntersectionObserver(([e]) => {
+          document.body.classList.toggle('scrolled', !e.isIntersecting);
+        });
+        io.observe(sentinel);
+      }
+
+      function setupReveal() {
+        const els = document.querySelectorAll('.reveal');
+        if (!els.length) return;
+        document.documentElement.classList.add('reveal-ready');
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((e) => {
+              if (e.isIntersecting) {
+                e.target.classList.add('in');
+                io.unobserve(e.target);
+              }
+            });
+          },
+          { rootMargin: '0px 0px -8% 0px' }
+        );
+        els.forEach((el) => io.observe(el));
+      }
+
+      function init() {
+        setupClock();
+        setupNav();
+        setupReveal();
+      }
+
+      document.addEventListener('astro:page-load', init);
+    </script>
   </body>
 </html>

@@ -7,17 +7,36 @@ interface Props {
   description?: string;
   category: string;
   cover?: string;
+  date: Date;
+  variant?: 'photo' | 'text';
+  tall?: boolean;
 }
 
-const { id, title, description, category, cover } = Astro.props;
-const fallback = `https://picsum.photos/seed/${encodeURIComponent(id)}/600/450`;
+const { id, title, description, category, cover, date, variant = 'photo', tall = false } = Astro.props;
+
+const img = cover ?? `https://picsum.photos/seed/${encodeURIComponent(id)}/900/600`;
+const dateLabel = date
+  .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+  .toUpperCase();
+const kicker = `${categoryName(category)} · ${dateLabel}`;
 ---
 
-<a class="card" href={`/posts/${id}/`}>
-  <div class="thumb">
-    <img src={cover ?? fallback} alt={title} loading="lazy" />
-  </div>
-  <div class="meta">{categoryName(category)}</div>
-  <h3>{title}</h3>
-  {description && <p>{description}</p>}
-</a>
+{
+  variant === 'text' ? (
+    <a class="card-text reveal" href={`/posts/${id}/`}>
+      <div class="meta slate">{kicker}</div>
+      <h3>{title}</h3>
+      {description && <p class="excerpt">{description}</p>}
+      <span class="more">Read the story →</span>
+    </a>
+  ) : (
+    <a class={`card reveal${tall ? ' tall' : ''}`} href={`/posts/${id}/`}>
+      <figure class="frame" transition:name={`photo-${id}`}>
+        <img src={img} alt={title} loading="lazy" decoding="async" />
+      </figure>
+      <div class="meta slate">{kicker}</div>
+      <h3>{title}</h3>
+      {description && <p class="excerpt">{description}</p>}
+    </a>
+  )
+}
